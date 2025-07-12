@@ -1,0 +1,78 @@
+# Train Display Configuration File
+# Lines starting with # are comments
+# Setting here will overide anything in config.h
+
+debug_mode=false
+debug_log_dir=/tmp
+# Station codes
+location=HIT
+platform=1
+
+# Feature Configuration
+ShowCallingPointETD=Yes
+ShowMessages=Yes
+ShowPlatforms=Yes
+ShowLocation=Yes
+
+# API Configuration
+StaffAPIKey=
+DelayCancelAPIKey=
+
+# Display font configuration
+fontPath=/home/display/rpi-rgb-led-matrix/fonts/7x14.bdf
+
+# Timing parameters (in milliseconds/seconds)
+scroll_slowdown_sleep_ms=15
+refresh_interval_seconds=60
+third_line_refresh_seconds=10
+Message_Refresh_interval=20
+ETD_coach_refresh_seconds=4
+
+# Matrix hardware configuration
+matrixcols=128
+matrixrows=64
+matrixchain_length=3
+matrixparallel=1
+matrixhardware_mapping=adafruit-hat-pwm
+gpio_slowdown=2
+
+# Display layout configuration (vertical positions)
+first_line_y=12
+second_line_y=29
+third_line_y=46
+fourth_line_y=62
+
+
+# RGB Matrix Library Configuration Parameters
+# Please do not put comments on the same line as values
+
+# Panel type settings
+led-multiplexing=0
+led-pixel-mapper=
+led-panel-type=
+
+# Display quality settings
+led-pwm-bits=1
+led-brightness=100
+led-scan-mode=0
+led-row-addr-type=0
+
+# Refresh rate settings
+led-show-refresh=false
+led-limit-refresh=0
+
+# Color settings
+led-inverse=false
+led-rgb-sequence=RGB
+
+# Advanced PWM settings
+led-pwm-lsb-nanoseconds=130
+led-pwm-dither-bits=0
+led-no-hardware-pulse=false
+
+# Privilege/daemon settings
+led-daemon=false
+led-no-drop-privs=false
+led-drop-priv-user=daemon
+led-drop-priv-group=daemon
+
