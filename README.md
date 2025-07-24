@@ -1,5 +1,5 @@
 ## Current Status
-**Beta Release** Updates, fixes, comments and suggestions welcome!
+**Second Beta Release** Some fixes deployed and additional functions added. Testing and feedback welcome!
 
 # RPi_DepartureBoard
 A Raspberry Pi powered HUB75-Matrix real-time UK train departure board with UI. Uses Staff Data for additional functionality. Supports up to 3x3 matrix panels.
@@ -91,11 +91,17 @@ Then reboot - `sudo reboot` to get a nice clean and sparkly install.
 
 ## Installing packages you'll need
 In no particular order:
-* Git - `sudo apt install git`.
-* JSON for modern C++ - `sudo apt install nlohmann-json3-dev`.
-* curl (should be there already) - `sudo apt install libcurl4`.
-* curl C++ wrappers - `sudo apt install libcurlpp-dev`.
+* Git 
+* JSON for modern C++ 
+* curl (should be there already) 
+* curl C++ wrappers 
+```
+sudo apt install git
+sudo apt install nlohmann-json3-dev
+sudo apt install libcurl4
+sudo apt install libcurlpp-dev
 
+```
 
 ## Install the RGB Matrix Software ##
 Take a clone of the RPI RGB Matrix repository - `git clone https://github.com/hzeller/rpi-rgb-led-matrix`.
