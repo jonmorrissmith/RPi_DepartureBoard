@@ -47,7 +47,7 @@ And here we are.
 
 # Hardware
 
-*I'll add a section on this - in the meantime see the detail on the [Original Raspberry Pi Departure Board repo](https://github.com/jonmorrissmith/RpiTrainDisplay/blob/main/README.md#hardware).*
+See documentation [here in the Doc directory](https://github.com/jonmorrissmith/RPi_DepartureBoard/blob/main/Docs/Hardware.md)
 
 # Setting up the Raspberry Pi #
 
