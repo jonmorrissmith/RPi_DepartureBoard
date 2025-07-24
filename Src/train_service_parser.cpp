@@ -10,7 +10,6 @@
 #include "train_service_parser.h"
 
 // Load the cancellation/delay reason codes and cache them.
-
 void TrainServiceParser::loadReasonCodes(const std::string& reasonJsonString){
     
     json refdata;
@@ -27,20 +26,19 @@ void TrainServiceParser::loadReasonCodes(const std::string& reasonJsonString){
     
     DEBUG_PRINT("[Parser] Loading Cancellation/Delay Reason Codes");
     
-    // Go through the reason code JSON and store in a new_reason object.
-    for(i=0; i < num_reasons; i++){
+    for(i=0; i < num_reasons; i++){                                                                                                         // Go through the reason code JSON and store in a new_reason object.
         code = refdata[i]["code"].get<size_t>();
         new_reason.code = std::to_string(code);
         new_reason.delayReason = extractJSONvalue<std::string>(refdata[i], "lateReason", "No Reason");
         new_reason.cancelReason = extractJSONvalue<std::string>(refdata[i], "cancReason", "No Reason");
         
-        new_index = reason_codes.size();                                                                // Store the code in the map
+        new_index = reason_codes.size();                                                                                                    // Store the code in the map
         reason_codes[new_reason.code] = new_index;
-        new_delay_cancel_reasons.push_back(new_reason);                                                 // Add the code to the new delay/cancel reason vector
+        new_delay_cancel_reasons.push_back(new_reason);                                                                                     // Add the code to the new delay/cancel reason vector
     }
     DEBUG_PRINT("[Parser] Delay/Cancellation codes loaded - " << num_reasons << " in the cache");
-    delay_cancel_reasons.swap(new_delay_cancel_reasons);                                                // Store the extracted reference data
-    refdata_loaded = true;                                                                              // Set the flag to indicate reference data has been loaded
+    delay_cancel_reasons.swap(new_delay_cancel_reasons);                                                                                    // Store the extracted reference data
+    refdata_loaded = true;                                                                                                                  // Set the flag to indicate reference data has been loaded
     DEBUG_PRINT("[Parser] Creating null Basic/Additional Service items");
     CreateNullServiceInfo();
 }
@@ -53,10 +51,10 @@ int64_t TrainServiceParser::getCacheAPIVersion(){
 // Wrapper function to execute pre-fetch and hydrate the departure cache.
 void TrainServiceParser::updateCache(const std::string &jsonString, const int64_t &version){
     
-    DEBUG_PRINT("[Parser] [Updating the cache] - pre-fetch and hydration of departure cache");
+    DEBUG_PRINT("[Parser] Updating the cache - pre-fetch and hydration of departure cache");
     prefetchCache(jsonString, version);
     hydrateDepartureCache();
-    DEBUG_PRINT("[Parser] [Cache updated]");
+    DEBUG_PRINT("[Parser] Cache updated");
 }
 
 // Wrapper function to load the reason codes, execute pre-fetch and hydrate the departure cache.
@@ -85,38 +83,27 @@ void TrainServiceParser::createFromJSON(const std::string &datajsonString, const
 
 void TrainServiceParser::prefetchCache(const std::string& jsonString, const int64_t& api_version){
         
-    // New Sequence of Services
-    std::vector<ServiceSequence> new_services_sequence(max_json_size);
+    std::vector<ServiceSequence> new_services_sequence(max_json_size);                                                                          // New Sequence of Services
     new_services_sequence.reserve(max_json_size);
     
-    // New Basic Service Info
-    std::vector<BasicServiceInfo> new_services_basic(max_json_size);
+    std::vector<BasicServiceInfo> new_services_basic(max_json_size);                                                                            // New Basic Service Info
     new_services_basic.reserve(max_json_size);
     
-    // New Additional Service Info
-    std::vector<AdditionalServiceInfo> new_services_additions(max_json_size);
+    std::vector<AdditionalServiceInfo> new_services_additions(max_json_size);                                                                   // New Additional Service Info
     new_services_additions.reserve(max_json_size);
     
-    // New Calling Point Info
-    std::vector<CallingPointsInfo> new_services_callingpoints(max_json_size);
+    std::vector<CallingPointsInfo> new_services_callingpoints(max_json_size);                                                                   // New Calling Point Info
     new_services_callingpoints.reserve(max_json_size);
     
-    // New JSON data - use this and update the stored JSON at the end of the method
-    json new_data;
+    json new_data;                                                                                                                              // New JSON data - use this and update the stored JSON at the end of the method
     
-    // List of found TrainIDs
-    std::unordered_map<std::string, size_t> new_cached_trainIDs;
+    std::unordered_map<std::string, size_t> new_cached_trainIDs;                                                                                // List of found TrainIDs
     size_t new_index;
     
-    // Use current time as the default value
-    std::time_t now = std::time(nullptr);
-    
-    // Temporary variables
-    //size_t i;
-    //size_t extract;
+    std::time_t now = std::time(nullptr);                                                                                                       // Use current time as the default value
     
     try {
-        DEBUG_PRINT("[Parser] [Cache pre-fetch Started]");
+        DEBUG_PRINT("[Parser] Cache pre-fetch Started");
         if(!refdata_loaded){
             throw std::out_of_range("Reference Data not loaded - fatal error!");
         }
@@ -144,7 +131,9 @@ void TrainServiceParser::prefetchCache(const std::string& jsonString, const int6
                 
             } else {                                                                                                                            // No valid Schdeuled Departure Time means the service terminates here.
                 new_services_sequence[i].std = INVALID_TIME;
+                new_services_sequence[i].std_specified = false;
                 new_services_sequence[i].etd = INVALID_TIME;
+                new_services_sequence[i].etd_specified = false;
                 new_services_sequence[i].departure_time = INVALID_TIME;
             }
             
@@ -157,15 +146,17 @@ void TrainServiceParser::prefetchCache(const std::string& jsonString, const int6
             
             if (it != cached_trainIDs.end()) {                                                                                                  // Service Information is cached
                 extract = it->second;
-                DEBUG_PRINT("   [Parser] Service " << it->first << " already cached at index " << extract << ". Moving to new index: " << i);
+                DEBUG_PRINT("   [Parser] Service " << it->first << " in the JSON is cached at index " << extract << ". Moving to new index: " << i << " and setting callingpoint/location data as stale. (valid service: " << new_services_sequence[extract].std_specified <<")." );
                 new_services_basic[i] = services_basic[extract];                                                                                // Pull in the basic service information we have cached.
                 
                                                                                                                                                 // As this service is cached, the additional service information and calling point information also needs to be kept
                 new_services_additions[i] = services_additions[extract];                                                                        // Store the additional information at the new position
                 new_services_callingpoints[i] = services_callingpoints[extract];                                                                // Store the calling point information at the new position
+                new_services_callingpoints[i].callingPointsCached = false;                                                                      // Flag calling point data as stale
+                new_services_callingpoints[i].service_location_cached = false;                                                                  // Flag service-location data as stale
                 
             } else {                                                                                                                            // No Service Information is cached. These are new, unpopulated objects
-                DEBUG_PRINT("   [Parser] Service at position " << i << " (trainID " << new_services_sequence[i].trainid << ") in the JSON is not cached. Flagging Basic and Additional static data as stale");
+                DEBUG_PRINT("   [Parser] Service at position " << i << " (trainID " << new_services_sequence[i].trainid << ") in the JSON is not cached. Flagging all Basic and Additional static data as stale");
                 new_services_additions[i].static_data_available = false;                                                                        // New items don't have the static data stored.
                 new_services_basic[i].static_data_available = false;
                 new_services_callingpoints[i].callingPointsCached = false;
@@ -201,7 +192,7 @@ void TrainServiceParser::prefetchCache(const std::string& jsonString, const int6
         orderTheDepartureList();
         // Void the existing service_list (of the next departures).
         std::fill(service_List.begin(), service_List.end(), 999);
-        DEBUG_PRINT("[Parser] [Cache pre-fetch Completed]");
+        DEBUG_PRINT("[Parser] Cache pre-fetch Completed");
     } catch (const json::parse_error& e) {
         throw std::runtime_error("[Parser] Failed to parse JSON in cache pre-fetch " + std::string(e.what()));
     }
@@ -240,7 +231,7 @@ void TrainServiceParser::prefetchMetaData(const json& new_data){
         }
     }
     
-    DEBUG_PRINT("   [Parser] [Caching NRCC Messages]");
+    DEBUG_PRINT("   [Parser] Caching NRCC Messages");
     
     if (new_data.find("nrccMessages") != new_data.end() &&
         new_data["nrccMessages"].is_array() &&
@@ -284,7 +275,7 @@ void TrainServiceParser::prefetchMetaData(const json& new_data){
         }
     }
     
-    DEBUG_PRINT("[Parser] [Caching NRCC Messages complete]");
+    DEBUG_PRINT("[Parser] Caching NRCC Messages complete");
 }
 
 // Store the sequence of departures in ETDOrderedList
@@ -298,7 +289,7 @@ void TrainServiceParser::orderTheDepartureList() {
     time_list.reserve(max_json_size);
     
     try {
-        DEBUG_PRINT("[Parser] [Ordering departure times Starting]");
+        DEBUG_PRINT("[Parser] Ordering departure times Starting");
         // Get current time to use for date information
         std::time_t now = std::time(nullptr);
         std::tm *now_tm = std::localtime(&now);
@@ -316,13 +307,14 @@ void TrainServiceParser::orderTheDepartureList() {
             }
         
         if (debug_mode) {
-            DEBUG_PRINT("   [Parser] Unsorted Departures ---");
+            DEBUG_PRINT("   [Parser] Unsorted Departures");
             for (size_t i = 0; i < number_of_services; i++) {
                 DEBUG_PRINT("   Index " << i << " of time_list array: TrainID: " << services_sequence[i].trainid
                             << " Platform " << services_sequence[i].platform
                             << " Departure time " << timeToHHMM(time_list[i]) << " derived from"
                             << " std specified:" << services_sequence[i].std_specified << " std: " << timeToHHMM(services_sequence[i].std)
-                            << " etd specified:" << services_sequence[i].etd_specified << " etd: " << timeToHHMM(services_sequence[i].etd));
+                            << " etd specified:" << services_sequence[i].etd_specified << " etd: " << timeToHHMM(services_sequence[i].etd)
+                            << " departure time cached:" << timeToHHMM(services_sequence[i].departure_time));
             }
             if (number_of_services == 0) {
                 DEBUG_PRINT("   [Parser] No train services available");
@@ -334,13 +326,6 @@ void TrainServiceParser::orderTheDepartureList() {
         for (size_t i = 0; i < number_of_services; i++) {
             ETDOrderedList[i] = i;
         }
-        
-        // Sort only valid indices
-        /* std::sort(ETDOrderedList.begin(),
-                   ETDOrderedList.begin() + number_of_services,
-                   [&time_list](size_t a, size_t b) {
-             return time_list[a] < time_list[b];
-         }); */
         
         std::sort(ETDOrderedList.begin(), ETDOrderedList.begin() + number_of_services, [&time_list](size_t a, size_t b)
         {
@@ -370,13 +355,13 @@ void TrainServiceParser::orderTheDepartureList() {
                 
                 DEBUG_PRINT("   Position: " << i << " Index: " << idx << " TrainID: " << services_sequence[idx].trainid
                             << " Platform: " << services_sequence[idx].platform
-                            << " Departure time: " << timeToHHMM(time_list[idx])
+                            << " Departure time: " << timeToHHMM(time_list[idx])  << " derived from"
                             << " std specified:" << services_sequence[idx].std_specified << " std: " << timeToHHMM(services_sequence[idx].std)
                             << " etd specified:" << services_sequence[idx].etd_specified << " etd: " << timeToHHMM(services_sequence[idx].etd)
                             << " departure time cached:" << timeToHHMM(services_sequence[idx].departure_time));
             }
         }
-        DEBUG_PRINT("[Parser] [Ordering departure times Completed]");
+        DEBUG_PRINT("[Parser] Ordering departure times Completed");
     } catch (const json::exception& e) {
         throw std::runtime_error("[Parser] Error creating ordered list of departure times: " + std::string(e.what()));
     }
@@ -415,7 +400,7 @@ void TrainServiceParser::hydrateDepartureCache(){
     std::lock_guard<std::mutex> lock(dataMutex);
     
     try {
-        DEBUG_PRINT("[Parser] [Hydrating Departure Cache] for platform: " << selected_platform << "(Platform select flag: " << selectPlatform << ")");
+        DEBUG_PRINT("[Parser] Hydrating Departure Cache] for platform: " << selected_platform << "(Platform select flag: " << selectPlatform << ")");
         
         
         if (number_of_services == 0) {                                                                                          // Check if train services exist in the data
@@ -433,24 +418,25 @@ void TrainServiceParser::hydrateDepartureCache(){
                 
                 if (services_sequence[index].platform == selected_platform) {                                                   // Check if the platform matches the selected platform
                     
-                    DEBUG_PRINT("   [Parser] Found service for platform " << selected_platform << " at position " << index);                // Found a service for the selected platform
+                    DEBUG_PRINT("   [Parser] Found service for platform " << selected_platform << " at service_index " << index);    // Found a service for the selected platform
                     if(services_sequence[index].std == INVALID_TIME) {
                         service_List[serviceCount] = 999;                                                                       // Service is an arrival - add 999 to the array (the sort function puts all of these at the end, so there will be no subsequent valid departures)
-                        DEBUG_PRINT("   [Parser] Invalid departure - arrival at a terminus");
+                        DEBUG_PRINT("   [Parser] Position " << i << " in the ordered departure list: Invalid departure at index " << index <<" (service terminates here - no subsequent valid departures.");
                     } else {
                         service_List[serviceCount] = index;                                                                     // Add its index to the array
-                        DEBUG_PRINT("   [Parser] Valid departure");
+                        DEBUG_PRINT("   [Parser] Position " << i << " in the ordered departure list: Valid departure at index " << index);
                     }
                     ++serviceCount;                                                                                             // Increment the count of services found
                 }
             }
         } else {
-            
+            DEBUG_PRINT("   [Parser] Searching for services at all platforms ");
             for (i = 0; i < number_of_departures; i++) {                                                                        // Find the first NUM_OF_DEPARTURES departures
                 if (i < number_of_services) {
                     if (ETDOrderedList[i] == 999) continue;                                                                     // Skip invalid services
                     if (services_sequence[ETDOrderedList[i] ].std == INVALID_TIME) continue;                                    // Skip arrivals at a terminus
                     service_List[i] = ETDOrderedList[i];
+                    DEBUG_PRINT("   [Parser] Found service at position " << i << " in the ordered departure list.");            // Found a valid service
                 }
             }
         }
@@ -458,7 +444,7 @@ void TrainServiceParser::hydrateDepartureCache(){
         DEBUG_PRINT("  [Parser] Hydrating Basic Data Cache for the next " << number_of_departures << " departures");
         for (i=0; i< number_of_departures; i++) {
             index = service_List[i];
-            DEBUG_PRINT("  [Parser] Departure: " << i << ". Hydrating data for Service Index: " << index);
+            DEBUG_PRINT("  [Parser] Departure: " << i << ". Initiating BasicData hydration for Service Index: " << index);
             if(index != 999) {                                                                                                  // Hydrate the basic cache for valid services
                 hydrateBasicDataCacheInternal(index);
             }
@@ -481,15 +467,16 @@ void TrainServiceParser::hydrateDepartureCache(){
                                 << ": Sequence TrainID: " << services_sequence[index].trainid
                                 << ": BasicInfo TrainID: " << services_basic[index].trainid
                                 << ". Destination: " << services_basic[index].destination
-                                << " - Scheduled departure: " << services_basic[index].scheduledDepartureTime
+                                << ". Scheduled departure: " << services_basic[index].scheduledDepartureTime
                                 << " - Estimated departure: " << services_basic[index].estimatedDepartureTime
-                                << " - Sequence Departure time:" << timeToHHMM(services_sequence[index].departure_time));
+                                << " - Sequence Departure time:" << timeToHHMM(services_sequence[index].departure_time)
+                                << ". Static Data available: " << services_basic[index].static_data_available);
                 }
             }
             DEBUG_PRINT("   [Parser] End of Departure Cache Hydration Results ---");
             debugPrintServiceSequence();
             debugPrintTrainIDIndices();
-            DEBUG_PRINT("[Parser] [Hydrating Departure Cache Complete] for platform: " << selected_platform << " (Plaform select flag: " << selectPlatform <<")");
+            DEBUG_PRINT("[Parser] Hydrating Departure Cache Complete for platform: " << selected_platform << " (Plaform select flag: " << selectPlatform <<")");
         }
     } catch (const json::exception& e) {
         DEBUG_PRINT("[Parser] Error finding services: " << e.what());
@@ -533,13 +520,10 @@ void TrainServiceParser::hydrateBasicDataCache(size_t service_index) {
 void TrainServiceParser::hydrateBasicDataCacheInternal(size_t service_index) {
     BasicServiceInfo new_basic_item;
     
-    // Temporary variables
-    //size_t extract;
-    //std::string ID = services_sequence[service_index].trainid;
     ID = services_sequence[service_index].trainid;
     
     try {
-        DEBUG_PRINT("[Parser] [Basic Data cache hydration Starting] for Service at Index " << service_index << ".");
+        DEBUG_PRINT("[Parser] Basic Data cache hydration Starting for Service at Index " << service_index << ".");
         
         // Use TrainID to check this is the expected Service
         new_basic_item.trainid = extractJSONvalue<std::string>(data["trainServices"][service_index], "trainid", "");
@@ -556,12 +540,12 @@ void TrainServiceParser::hydrateBasicDataCacheInternal(size_t service_index) {
             throw std::out_of_range("Service index exceeds current service count");
         }
         
-        if(services_basic[service_index].static_data_available){                                                                        // Basic Service Information is cached. Use the cached static data.Populate static data as it's new to the cache
+        if(services_basic[service_index].static_data_available){                                                                                        // Basic Service Information is cached. Use the cached static data.Populate static data as it's new to the cache
             DEBUG_PRINT("  [Parser] Basic Data: Static data cached - re-using")
             new_basic_item = services_basic[service_index];
-        } else {                                                                                                                        // Basic Service Information is NOT cached. Populate static data as it's new to the cache
+        } else {                                                                                                                                        // Basic Service Information is NOT cached. Populate static data as it's new to the cache
             DEBUG_PRINT("  [Parser] Basic Data: Static data not cached - hydrating");
-            services_additions[service_index].static_data_available = false;                                                            // If the Basic Service Information isn't cached, then any Additional Service Information is going to be stale.
+            services_additions[service_index].static_data_available = false;                                                                            // If the Basic Service Information isn't cached, then any Additional Service Information is going to be stale.
             
             // Scheduled Time of Departure as a string
             new_basic_item.scheduledDepartureTime = extractJSONTimeString(data["trainServices"][service_index], "std", "");
@@ -602,52 +586,40 @@ void TrainServiceParser::hydrateBasicDataCacheInternal(size_t service_index) {
             
             // EstimatedDepartureTime if an ETD is available
             //
-            // There isn't a "isDelayed" data point in the Staff data so we have to calculate if a service is delayed.
-            // For now this will be if the scheduled time = the estimated time.
-            // This needs to be refined so a parameter can be added for how many mins consitutes a delay
-            
-            /*if(services_sequence[service_index].etd_specified) {
-                new_basic_item.estimatedDepartureTime = extractJSONTimeString(data["trainServices"][service_index], "etd", "");;
-                new_basic_item.isDelayed = (new_basic_item.scheduledDepartureTime != new_basic_item.estimatedDepartureTime);
-            } else {
-                new_basic_item.estimatedDepartureTime = (new_basic_item.isCancelled) ? "Cancelled" : "On Time";
-                new_basic_item.isDelayed = (new_basic_item.isCancelled) ? true : false;
-            }*/
-            
-            
-            // EstimatedDepartureTime if an ETD is available
-            //
             // We can obtain delay status from departureType.
             
-            if(services_sequence[service_index].etd_specified) {                                                                            // If an estimated time of departure is available...
-                new_basic_item.estimatedDepartureTime = extractJSONTimeString(data["trainServices"][service_index], "etd", "");             // ... then display that
+            if(services_sequence[service_index].etd_specified) {                                                                                        // If an estimated time of departure is available...
+                new_basic_item.estimatedDepartureTime = extractJSONTimeString(data["trainServices"][service_index], "etd", "");                         // ... then display that
+                if (new_basic_item.estimatedDepartureTime == new_basic_item.scheduledDepartureTime) {                                                   // Catch situations where a service etd is set and the service is on time
+                    new_basic_item.estimatedDepartureTime = "On Time";
+                }
                 DEBUG_PRINT("  [Parser] ETD found - storing " << new_basic_item.estimatedDepartureTime);
-            } else {                                                                                                                        // otherwise
-                new_basic_item.estimatedDepartureTime = (new_basic_item.isCancelled) ? "Cancelled" : "On Time";                             // Display 'On Time' or 'Cancelled'
+            } else {                                                                                                                                    // otherwise
+                new_basic_item.estimatedDepartureTime = (new_basic_item.isCancelled) ? "Cancelled" : "On Time";                                         // Display 'On Time' or 'Cancelled'
                 DEBUG_PRINT("  [Parser] No ETD found - storing " << new_basic_item.estimatedDepartureTime);
             }
             
-            if(extractJSONvalue<std::string>(data["trainServices"][service_index], "departureType", "") == "Delayed" ) {                    // If a departure is marked as 'Delayed'
+            if(extractJSONvalue<std::string>(data["trainServices"][service_index], "departureType", "") == "Delayed" ) {                                // If a departure is marked as 'Delayed'
                 DEBUG_PRINT("  [Parser] Service Departure Type is 'Delayed'. Setting the 'isDelayed' flag to true");
-                new_basic_item.isDelayed = true;                                                                                            // Set the delay flag
-                if(!services_sequence[service_index].etd_specified) {                                                                       // If no estimated time of departure is available then display 'Delayed' (otherwise leave the estimated departure time to be displayed)
+                new_basic_item.isDelayed = true;                                                                                                        // Set the delay flag
+                if(!services_sequence[service_index].etd_specified) {                                                                                   // If no estimated time of departure is available then display 'Delayed' (otherwise leave the estimated departure time to be displayed)
                     new_basic_item.estimatedDepartureTime = "Delayed";
                     DEBUG_PRINT("  [Parser] Delayed and no ETD found - storing " << new_basic_item.estimatedDepartureTime);
                 }
-            } else {                                                                                                                        // Otherwise it's not delayed
+            } else {                                                                                                                                    // Otherwise it's not delayed
                 new_basic_item.isDelayed = false;
                 DEBUG_PRINT("  [Parser] Service Departure Type is not 'Delayed'. Setting the 'isDelayed' flag to false");
             }
      
-            new_basic_item.apiDataVersion = api_data_version;
+            new_basic_item.apiDataVersion = api_data_version;                                                                                           // Store the new API Data version
             DEBUG_PRINT("  [Parser] New basic item API version: " << new_basic_item.apiDataVersion <<" from api_data_version: " << api_data_version);
         }
         // Store the service data
         services_basic[service_index] = new_basic_item;
-        DEBUG_PRINT("[Basic Data cache hydration completed] for Service at Index " << service_index << ".");
+        DEBUG_PRINT("[Parser] Basic Data cache hydration completed for Service at Index " << service_index << ".");
         
     } catch (const json::parse_error& e) {
-        throw std::runtime_error("Failed to parse JSON to hydrate basic data: " + std::string(e.what()));
+        throw std::runtime_error("[Parse] Failed to parse JSON to hydrate basic data: " + std::string(e.what()));
     }
 }
 
@@ -685,7 +657,7 @@ void TrainServiceParser::hydrateAdditionalDataCacheInternal(size_t service_index
     ID = services_sequence[service_index].trainid;
     
     try {
-        DEBUG_PRINT("[Parser] [Additional Data cache hydration] for service " << service_index <<".");
+        DEBUG_PRINT("[Parser] Additional Data cache hydration for service " << service_index <<".");
         
         // Use TrainID to check this is the expected Service
         new_additional_item.trainid = extractJSONvalue<std::string>(data["trainServices"][service_index], "trainid", "");
@@ -746,7 +718,7 @@ void TrainServiceParser::hydrateAdditionalDataCacheInternal(size_t service_index
                 debugPrintTrainIDIndices();
             }
         }
-        DEBUG_PRINT("[Parser] [Additional Data cache hydration complete] for service " << service_index <<".");
+        DEBUG_PRINT("[Parser] Additional Data cache hydration complete for service " << service_index <<".");
         
     } catch (const json::parse_error& e) {
         throw std::runtime_error("[Parser] Failed to parse JSON for additional data: " + std::string(e.what()));
@@ -919,7 +891,9 @@ std::string TrainServiceParser::getCallingPoints(size_t service_index, CallingPo
         // Use TrainID to check this is the expected Service
         ID = services_sequence[service_index].trainid;
         trainid = extractJSONvalue<std::string>(data["trainServices"][service_index], "trainid", "");
-        DEBUG_PRINT("   [Parser] Calling Points: Expected Service " << ID << " and got Service " << trainid)
+        DEBUG_PRINT("   [Parser] Calling Points: Expected Service " << ID << " and got Service " << trainid
+                    << ". Calling Points cached flag: " << services_callingpoints[service_index].callingPointsCached
+                    << ". Data version for cached calling points: " << services_callingpoints[service_index].apiDataVersion);
         if(trainid != ID){
             throw std::out_of_range("Unexpected TrainID");
         }
@@ -928,7 +902,6 @@ std::string TrainServiceParser::getCallingPoints(size_t service_index, CallingPo
             throw std::out_of_range("Service index out of range");
         }
         
-        DEBUG_PRINT("   [Parser] Calling Points cached flag: " << services_callingpoints[service_index].callingPointsCached << ". Calling Point Data API version: " << api_data_version);
         // if this is cached then return the stored strings
         if (show_ETD == NOETD) {
             if (services_callingpoints[service_index].callingPointsCached && (services_callingpoints[service_index].apiDataVersion == api_data_version)){
@@ -1033,16 +1006,16 @@ std::string TrainServiceParser::getServiceLocation(size_t service_index) {
             throw std::out_of_range("Service index out of range");
         }
         
-        // Use TrainID to check this is the expected Service
-        ID = services_sequence[service_index].trainid;
+        ID = services_sequence[service_index].trainid;                                                                                                       // Use TrainID to check this is the expected Service
         trainid = extractJSONvalue<std::string>(data["trainServices"][service_index], "trainid", "");
-        DEBUG_PRINT("   [Parser] Expected Service " << ID << " and got Service " << trainid);
+        DEBUG_PRINT("   [Parser] Expected Service " << ID << " and got Service " << trainid
+                    << ". Location cached flag: " << services_callingpoints[service_index].service_location_cached
+                    << ". Data version for cached location: " << services_callingpoints[service_index].apiDataVersion);
         if(trainid != ID){
             throw std::out_of_range("Unexpected TrainID");
         }
         
-        // If we have this cached then use that data.
-        if(services_callingpoints[service_index].service_location_cached && services_callingpoints[service_index].apiDataVersion == api_data_version) {
+        if(services_callingpoints[service_index].service_location_cached && services_callingpoints[service_index].apiDataVersion == api_data_version) {     // If we have this cached then use that data.
             DEBUG_PRINT("   [Parser] Service location cached for index " << service_index << ". Using that data");
             return services_callingpoints[service_index].service_location;
         }
@@ -1053,22 +1026,24 @@ std::string TrainServiceParser::getServiceLocation(size_t service_index) {
         ExtractCallingPoints(service_index, PREVIOUS);
         
         num_calling_points = services_callingpoints[service_index].num_previous_calling_points;
-        if(num_calling_points == 0) {                                                                                       // If there are no calling points, then the location is the origin of the Service
-            DEBUG_PRINT("   [Parser] No previous calling points - the service starts here");
-            DEBUG_PRINT("   [Parser] Finding location of Service Completed for service at index: " << service_index);
+        if(num_calling_points == 0) {                                                                                                                       // If there are no calling points, then the location is the origin of the Service
+            DEBUG_PRINT("   [Parser] No previous calling points - the service starts here. Finding location completed for service at index: " << service_index);
             return "";
         }
         
         for (i=0; i < num_calling_points ; i++) {
             if (!services_callingpoints[service_index].PreviousCallingPoints[i].isPass) {
                 if (next_stop == 0) {
-                    if (services_callingpoints[service_index].PreviousCallingPoints[i].ArrivalType == "Forecast") {
+                    if (services_callingpoints[service_index].PreviousCallingPoints[i].ArrivalType != "Actual") {                                         // This was originally 'Forecast' - setting to 'not Actual' (as we have both 'Forecast' and 'Delayed' to handle)
                         next_stop = i;
                     } else {
                         current_stop = i;
                     }
                 }
-                DEBUG_PRINT("   [Parser] current: " << current_stop << ". next: " << next_stop << ".  position: " << i << ". Location: " << services_callingpoints[service_index].PreviousCallingPoints[i].locationName << ". Arrival: " << services_callingpoints[service_index].PreviousCallingPoints[i].ArrivalTime << ". Arrival Type: " << services_callingpoints[service_index].PreviousCallingPoints[i].ArrivalType <<".");
+                DEBUG_PRINT("   [Parser] current: " << current_stop << ". next: " << next_stop << ".  position: " << i << ". Location: "
+                            << services_callingpoints[service_index].PreviousCallingPoints[i].locationName << ". Arrival: "
+                            << services_callingpoints[service_index].PreviousCallingPoints[i].ArrivalTime << ". Arrival Type: "
+                            << services_callingpoints[service_index].PreviousCallingPoints[i].ArrivalType <<".");
             }
         }
         
@@ -1080,7 +1055,7 @@ std::string TrainServiceParser::getServiceLocation(size_t service_index) {
             ss << "This service is between " << services_callingpoints[service_index].PreviousCallingPoints[current_stop].locationName << " and " << services_callingpoints[service_index].PreviousCallingPoints[next_stop].locationName;
         }
         
-        DEBUG_PRINT("   [Parser] Service location ====> " << ss.str());
+        DEBUG_PRINT("   [Parser] Storing API version, location-cached-flag and service location ====> " << ss.str());
         services_callingpoints[service_index].service_location = ss.str();
         services_callingpoints[service_index].service_location_cached = true;
         services_callingpoints[service_index].apiDataVersion = api_data_version;
@@ -1105,7 +1080,7 @@ std::string TrainServiceParser::decodeDelayCode(size_t delay_code){
     
     if (it != reason_codes.end()) {
         extract = it->second;
-        DEBUG_PRINT("[Parser] [Find delay code] Delay Code " << it->first << " found at location " << extract << ": " << delay_cancel_reasons[extract].delayReason);
+        DEBUG_PRINT("[Parser] Find Delay Code " << it->first << " found at location " << extract << " and decodes as " << delay_cancel_reasons[extract].delayReason);
         return delay_cancel_reasons[extract].delayReason;
     }
     return "";
@@ -1120,7 +1095,7 @@ std::string TrainServiceParser::decodeCancelCode(size_t delay_code){
     
     if (it != reason_codes.end()) {
         extract = it->second;
-        DEBUG_PRINT("[Parser] [Find cancellation code] Cancellation Code " << it->first << " found at location " << extract << ": " << delay_cancel_reasons[extract].cancelReason);
+        DEBUG_PRINT("[Parser] Find Cancellation Code " << it->first << " found at location " << extract << " and decodes as " << delay_cancel_reasons[extract].cancelReason);
         return delay_cancel_reasons[extract].cancelReason;
     }
     return "";
@@ -1133,7 +1108,7 @@ TrainServiceParser::BasicServiceInfo TrainServiceParser::getBasicServiceInfo(siz
     std::lock_guard<std::mutex> lock(dataMutex);
     try {
         if (service_index == 999){
-            DEBUG_PRINT("   [Parser] WARNING - requested Basic Service info for service_index 999 - returning the null structure");
+            DEBUG_PRINT("[Parser] WARNING - requested Basic Service info for service_index 999 - returning the null structure");
             return null_basic_service;
         }
         
@@ -1141,7 +1116,10 @@ TrainServiceParser::BasicServiceInfo TrainServiceParser::getBasicServiceInfo(siz
             throw std::out_of_range("Service index out of range");
         }
         
-        if (services_basic[service_index].apiDataVersion != api_data_version){
+        if (services_basic[service_index].apiDataVersion != api_data_version || services_basic[service_index].static_data_available == false ){
+            DEBUG_PRINT("[Parser] Requested Basic Service info for service_index " << service_index
+                        << ". Stored API version (" << services_basic[service_index].apiDataVersion << ") vs current data version ( " << api_data_version << ") or static data available flag (" << services_basic[service_index].static_data_available
+                        << ") initiates hydration of Basic Data cache.");
             hydrateBasicDataCacheInternal(service_index);
         }
         
@@ -1164,6 +1142,9 @@ TrainServiceParser::AdditionalServiceInfo TrainServiceParser::getAdditionalServi
         }
         
         if (services_additions[service_index].apiDataVersion != api_data_version){
+            DEBUG_PRINT("[Parser] Requested Additional Service info for service_index " << service_index
+                        << ". Stored API version (" << services_additions[service_index].apiDataVersion << ") vs current data version ( " << api_data_version << ") or static data available flag (" << services_additions[service_index].static_data_available
+                        << ") initiates hydration of Additional Data cache.");
             hydrateAdditionalDataCacheInternal(service_index);
         }
         
@@ -1239,6 +1220,7 @@ void TrainServiceParser::CreateNullServiceInfo(){
          bool static_data_available;           // Internal flag
      };
      */
+    
     null_basic_service.trainid = "9999";
     null_basic_service.destination = "Nowhere";
     null_basic_service.scheduledDepartureTime = "99:99";
@@ -1251,7 +1233,7 @@ void TrainServiceParser::CreateNullServiceInfo(){
     null_basic_service.delayReason = "Null Service - Delay Reason";
     null_basic_service.apiDataVersion = 0;
     null_basic_service.static_data_available = true;
-    DEBUG_PRINT("Basic Null created");
+    
     /*
      struct AdditionalServiceInfo {
          std::string trainid;
@@ -1275,7 +1257,8 @@ void TrainServiceParser::CreateNullServiceInfo(){
     null_additional_service.platformIsHidden = false;
     null_additional_service.serviceIsSupressed = false;
     null_additional_service.isPassengerService = true;
-    DEBUG_PRINT("Additional Null created");
+    
+    DEBUG_PRINT("   [Parser] Null Basic and Additional service items created");
 }
 
 
@@ -1295,7 +1278,7 @@ void TrainServiceParser::debugPrintServiceSequence(){
     std::cout << "[Parser] Service Sequence Information: " << std::endl;
     
     for(i = 0; i < number_of_services; i++){
-        std::cerr << "Index: " << i <<" ->   std:" << timeToHHMM(services_sequence[i].std) <<
+        std::cerr << "   Index: " << i <<" ->   std:" << timeToHHMM(services_sequence[i].std) <<
         ". etd_specified:" << services_sequence[i].etd_specified <<
         ". departure_time:" << timeToHHMM(services_sequence[i].departure_time) <<
         ". platform:" << services_sequence[i].platform <<

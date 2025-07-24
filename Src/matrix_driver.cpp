@@ -188,7 +188,7 @@ void MatrixDriver::render(){
         checkFirstRowStateTransition(current_time);
         
         renderSecondRow();
-        updateScrollPositions();
+        updateScrollPositions(current_time);
         
         renderThirdRow();
         checkThirdRowStateTransition(current_time);
@@ -216,24 +216,21 @@ void MatrixDriver::configureFirstRow(){
  
     first_row_config.y_position = config.getInt("first_line_y");                                // y_location of the first row
     first_row_config.refresh_state.triggerRefresh();                                            // Trigger a refresh
+    first_row_config.ETD_coach_refresh_seconds = config.getInt("ETD_coach_refresh_seconds");    // Interval between ETD|Coach toggles
+    first_row_config.ETDCoach_state = ETD;                                                      // Displaying ETD or Coach (initialise as 'ETD'
+    first_row_config.last_first_row_toggle = std::chrono::steady_clock::now();                  // When did the last Coach|ETD toggle happen
     
     first_row_content.destination.x_position = 0;
-    
-    first_row_config.ETD_coach_refresh_seconds = config.getInt("ETD_coach_refresh_seconds");    // Interval between ETD|Coach toggles
-    first_row_config.ETDCoach_state = ETD;
-
     first_row_content.estimated_depature_time.x_position = 0;
     first_row_content.coaches.x_position = 0;
 
-    first_row_config.last_first_row_toggle = std::chrono::steady_clock::now();                  // When did the last Coach|ETD toggle happen
     first_row_config.configured = true;
-    
     first_row_content.api_version = -1;
     
     DEBUG_PRINT("[Matrix_Driver] [First row initialised] Destination: (" << first_row_content.destination.x_position << "," << first_row_config.y_position << ") " <<
                 "ETD (x is set dynamically): (" << first_row_content.estimated_depature_time.x_position << "," << first_row_config.y_position << "). " <<
                 "Coach (x is set dynamically): (" << first_row_content.coaches.x_position  << "," << first_row_config.y_position << "). " <<
-                ". ETD|Coach interval: " << first_row_config.ETD_coach_refresh_seconds << " (s).");
+                " ETD|Coach interval: " << first_row_config.ETD_coach_refresh_seconds << " (s).");
 }
 
 void MatrixDriver::updateFirstRow(const first_row_data &new_first_row){
@@ -332,16 +329,20 @@ void MatrixDriver::transitionFirstRowState(){
 void MatrixDriver::configureSecondRow(){
     
     second_row_config.y_position = config.getInt("second_line_y");
-    second_row_config.message_slowdown_sleep = config.getInt("scroll_slowdown_sleep_ms");
+    second_row_config.calling_point_slowdown = config.getInt("calling_point_slowdown");
+    second_row_config.last_second_row_scroll_move = std::chrono::steady_clock::now();                                   // When did the last move happen to scroll the second-row text
     second_row_config.calling_at_text.setTextAndWidth("Calling at:", font_cache);
     second_row_config.space_for_calling_points = matrix_width - second_row_config.calling_at_text.width ;
-    second_row_content.calling_points.x_position = matrix_width;
+    second_row_config.second_row_state = CALLING_POINTS;
     second_row_config.scroll_calling_points = true;
+    
+    second_row_content.calling_points.x_position = matrix_width;
+    second_row_content.service_message.x_position = matrix_width;
+ 
     second_row_config.configured = true;
-
     second_row_content.api_version = -1;
     
-    DEBUG_PRINT("[Matrix_Driver] Second row initialised. y position: " << second_row_config.y_position << ". message_slowdown_sleep (ms): " << second_row_config.message_slowdown_sleep <<
+    DEBUG_PRINT("[Matrix_Driver] Second row initialised. y position: " << second_row_config.y_position << ". calling_point_slowdown: " << second_row_config.calling_point_slowdown <<
                 ". space_for_calling_points: " << second_row_config.space_for_calling_points << ". scroll_calling_points (bool): " << second_row_config.scroll_calling_points);
 }
 
@@ -355,7 +356,10 @@ void MatrixDriver::updateSecondRow(const second_row_data &new_second_row){
         } else {
             //second_row_content.calling_points.text = new_second_row.calling_points.text;                               // Copy the text, not the entire structure as the latter resets the x position of the scroll
             second_row_content.calling_points.text = new_second_row.calling_points.text;
+            second_row_content.has_calling_points = new_second_row.has_calling_points;
+            second_row_content.service_message.text = new_second_row.service_message.text;
             second_row_content.calling_points.setWidth(font_cache);
+            second_row_content.service_message.setWidth(font_cache);
             if (second_row_content.calling_points.width < (matrix_width - second_row_config.space_for_calling_points)) {
                 second_row_config.scroll_calling_points = false;
             } else {
@@ -367,7 +371,9 @@ void MatrixDriver::updateSecondRow(const second_row_data &new_second_row){
                 std::cerr << "   [Matrix_Driver] ==> Second Row content post-update" <<std::endl;
                 std::cerr << "   [Matrix_Driver] y position: " << second_row_config.y_position << std::endl;
                 std::cerr << "   [Matrix_Driver] scroll calling points: " << second_row_config.scroll_calling_points << std::endl;
+                std::cerr << "   [Matrix Driver] has calling points: " << second_row_content.has_calling_points << std::endl;
                 second_row_content.calling_points.fulldump("[Matrix_Driver] Calling Points");
+                second_row_content.service_message.fulldump("[Matrix Driver] Service Message");
                 std::cerr << "   [Matrix_Driver] api version: " << second_row_content.api_version <<std::endl;
             }
         }
@@ -379,45 +385,57 @@ void MatrixDriver::updateSecondRow(const second_row_data &new_second_row){
 void MatrixDriver::renderSecondRow(){
     try {
        
-        clearArea(0, second_row_config.y_position - font_baseline, matrix_width, second_row_config.y_position + font_height - font_baseline);     // Clear row
-        
-        rgb_matrix::DrawText(canvas, font, second_row_content.calling_points.x_position, second_row_config.y_position, white, second_row_content.calling_points.text.c_str());
-        if (second_row_content.calling_points.x_position < 0){
-            rgb_matrix::DrawText(canvas, font, second_row_content.calling_points.x_position + matrix_width + second_row_content.calling_points.width, second_row_config.y_position, white, second_row_content.calling_points.text.c_str());
+        clearArea(0, second_row_config.y_position - font_baseline, matrix_width, second_row_config.y_position + font_height - font_baseline);                                               // Clear row
+        if (second_row_config.second_row_state == CALLING_POINTS && second_row_content.has_calling_points) {
+            rgb_matrix::DrawText(canvas, font, second_row_content.calling_points.x_position, second_row_config.y_position, white, second_row_content.calling_points.text.c_str());          // Write the calling points
+
+            clearArea(0, second_row_config.y_position - font_baseline, second_row_config.calling_at_text.width, second_row_config.y_position + font_height - font_baseline);                // Clear area for "Calling at:" text
+            rgb_matrix::DrawText(canvas, font, 0, second_row_config.y_position, white, second_row_config.calling_at_text.text.c_str());                                                     // Write "Calling at:" text
+        } else {
+            rgb_matrix::DrawText(canvas, font, second_row_content.service_message.x_position, second_row_config.y_position, white, second_row_content.service_message.text.c_str());        // Write the service message
         }
-        
-        /*  Uncomment this section if you want to have "Calling at:" displayed on the left-hand side of the 2nd row.
-            I noticed that most (if not all?) departure boards don't have this text.
-            NOTE - you'll need to make the required changes to the updateScrollPositions method (see comments).
-        
-        clearArea(0, second_row_config.y_position - font_baseline, second_row_config.calling_at_text.width, second_row_config.y_position + font_height - font_baseline);                // Clear area for "Calling at:" text
-        rgb_matrix::DrawText(canvas, font, 0, second_row_config.y_position, white, second_row_config.calling_at_text.text.c_str());                                                     // Write "Calling at:" text
-         
-         */
         
     } catch(const std::exception& e) {
         std::cerr << "[Matrix_Driver] Error rendering the second row" << e.what() << std::endl;
     }
 }
 
-void MatrixDriver::updateScrollPositions(){
-    if (second_row_config.scroll_calling_points) {                                                                  // Calling point scroll
-        second_row_content.calling_points -- ;
-        if (second_row_content.calling_points.x_position < -second_row_content.calling_points.width) {
-            second_row_content.calling_points.x_position = matrix_width;
+void MatrixDriver::updateScrollPositions(const std::chrono::steady_clock::time_point& now){
+
+    if (second_row_config.second_row_state == CALLING_POINTS && second_row_content.has_calling_points) {
+        if (now - second_row_config.last_second_row_scroll_move >= std::chrono::microseconds(second_row_config.calling_point_slowdown)) {       // Calling-point scroll
+            if (second_row_config.scroll_calling_points) {
+                second_row_content.calling_points -- ;
+                if (second_row_content.calling_points.x_position < -second_row_content.calling_points.width) {                                  // When we get to the end of a scroll, change to displaying the Service Message.
+                    second_row_content.service_message.x_position = matrix_width;
+                    second_row_content.calling_points.x_position = matrix_width;
+                    second_row_config.second_row_state = SERVICE_MESSAGE;
+                }
+            } else {
+                second_row_content.calling_points.x_position = second_row_config.calling_at_text.width + 2;
+            }
+            second_row_config.last_second_row_scroll_move = now;
         }
     } else {
-        //second_row_content.calling_points.x_position = second_row_config.calling_at_text.width + 2;               // Uncomment this line if you're displaying the "Calling at" text (see comments in renderSecondRow method).
-        second_row_content.calling_points.x_position = 0;                                                           // Comment out this line if you're displaying the "Calling at" text.
+        if (now - second_row_config.last_second_row_scroll_move >= std::chrono::microseconds(second_row_config.calling_point_slowdown)) {       // Service Message scroll
+            second_row_content.service_message -- ;
+            if (second_row_content.service_message.x_position < -second_row_content.service_message.width) {                                    // When we get to the end of a scroll, change to displaying the Calling Points.
+                second_row_content.calling_points.x_position = matrix_width;
+                second_row_content.service_message.x_position = matrix_width;
+                second_row_config.second_row_state = CALLING_POINTS;
+            }
+            second_row_config.last_second_row_scroll_move = now;
+        }
     }
     
-    fourth_row_content.message--;
-    if (fourth_row_content.message.x_position < -fourth_row_content.message.width) {
-        fourth_row_content.message.x_position = matrix_width;
-        fourth_row_config.message_scroll_complete = true;                                                           // Required to enable the toggle to Location (if set)
+    if (now - fourth_row_config.last_nrcc_message_move >= std::chrono::microseconds(fourth_row_config.nrcc_message_slowdown)) {                 // NRCC message scroll
+        fourth_row_content.message--;
+        if (fourth_row_content.message.x_position < -fourth_row_content.message.width) {
+            fourth_row_content.message.x_position = matrix_width;
+            fourth_row_config.message_scroll_complete = true;                                                                                    // Required to enable the toggle to Location (if set)
+        }
+        fourth_row_config.last_nrcc_message_move = now;
     }
-    
-    std::this_thread::sleep_for(std::chrono::milliseconds( second_row_config.message_slowdown_sleep));              // Scroll speed adjustment
 }
 
 
@@ -428,23 +446,24 @@ void MatrixDriver::configureThirdRow(){
     third_row_config.y_position = config.getInt("third_line_y");
     third_row_config.refresh_state.triggerRefresh();
     third_row_config.third_line_refresh_seconds = config.getInt("third_line_refresh_seconds");
+    third_row_config.third_row_state = SECOND_TRAIN;
+    third_row_config.last_third_row_toggle = std::chrono::steady_clock::now();
+    third_row_config.scroll_in = config.getBool("third_line_scroll_in");
     
     third_row_content.second_departure.x_position = 0;
     third_row_content.second_departure_estimated_departure_time.x_position = 0;
     third_row_content.third_departure.x_position = 0;
     third_row_content.third_departure_estimated_departure_time.x_position = 0;
-    third_row_config.third_row_state = SECOND_TRAIN;
-    third_row_config.last_third_row_toggle = std::chrono::steady_clock::now();
-    
+
     third_row_config.configured = true;
-    
     third_row_content.api_version = -1;
     
     DEBUG_PRINT("[Matrix_Driver] [Third row initialised] 2nd departure.(" << third_row_content.second_departure.x_position << "," << third_row_config.y_position << ") " <<
                 "3rd departure (" << third_row_content.third_departure.x_position << "," << third_row_config.y_position << ") " <<
-                "2nd departure (x is set dynamically) (" << third_row_content.second_departure_estimated_departure_time.x_position << "," << third_row_config.y_position << "). " <<
-                "3rd departure (x is set dynamically) (" << third_row_content.third_departure_estimated_departure_time.x_position << "," << third_row_config.y_position << "). " <<
-                "Refresh interval" << third_row_config.third_line_refresh_seconds  << " (s)");
+                "2nd departure (" << third_row_content.second_departure_estimated_departure_time.x_position << "," << third_row_config.y_position << "). " <<
+                "3rd departure (" << third_row_content.third_departure_estimated_departure_time.x_position << "," << third_row_config.y_position << "). " <<
+                "Refresh interval: " << third_row_config.third_line_refresh_seconds  << " (s)" <<
+                "Scroll-in transition flag: " << third_row_config.scroll_in);
 }
 
 void MatrixDriver::updateThirdRow(const third_row_data &new_third_row){
@@ -488,6 +507,73 @@ void MatrixDriver::updateThirdRow(const third_row_data &new_third_row){
     }
 }
 
+
+// Uncoment this section if you want the 2nd/3rd departures to scroll in from the right!
+// Not used at the moment as changes in CPU utilisation (other scrolling, API refresh) can make scroll speed inconsistent.
+// ===> Begin section
+
+void MatrixDriver::renderThirdRow(){
+    try {
+        
+        if(third_row_config.refresh_state.needsRender()) {                                                                                              // if a render is required....
+            if (third_row_content.second_departure.x_position > 0){                                                                                     // if we're scrolling a transition
+                
+                clearArea(0, third_row_config.y_position - font_baseline, matrix_width, third_row_config.y_position + font_height - font_baseline);     // clear the row
+                
+                if (third_row_config.third_row_state == SECOND_TRAIN) {
+                    //2nd departure scrolling
+                    rgb_matrix::DrawText(canvas, font, third_row_content.second_departure.x_position, third_row_config.y_position, white, third_row_content.second_departure.text.c_str());
+                } else {
+                    //3rd departure scrolling
+                    rgb_matrix::DrawText(canvas, font, third_row_content.third_departure.x_position, third_row_config.y_position, white, third_row_content.third_departure.text.c_str());
+                }
+                third_row_content.second_departure.x_position--;
+                third_row_content.third_departure.x_position--;
+            } else {
+                clearArea(0, third_row_config.y_position - font_baseline, matrix_width, third_row_config.y_position + font_height - font_baseline);     // clear the row
+                
+                if (third_row_config.third_row_state == SECOND_TRAIN) {
+                    //2nd departure left justified - ETD right justified
+                    rgb_matrix::DrawText(canvas, font, third_row_content.second_departure.x_position, third_row_config.y_position, white, third_row_content.second_departure.text.c_str());
+                    rgb_matrix::DrawText(canvas, font, third_row_content.second_departure_estimated_departure_time.x_position, third_row_config.y_position, white, third_row_content.second_departure_estimated_departure_time.text.c_str());
+                } else {
+                    //3rd departure left justified - ETD right justified
+                    rgb_matrix::DrawText(canvas, font, third_row_content.third_departure.x_position, third_row_config.y_position, white, third_row_content.third_departure.text.c_str());
+                    rgb_matrix::DrawText(canvas, font, third_row_content.third_departure_estimated_departure_time.x_position, third_row_config.y_position, white, third_row_content.third_departure_estimated_departure_time.text.c_str());
+                }
+                
+                third_row_config.refresh_state.completePass();                                                                                          // complete the render
+            }
+        }
+    } catch(const std::exception& e) {
+        std::cerr << "[Matrix_Driver] Error rendering the third row" << e.what() << std::endl;
+    }
+}
+
+void MatrixDriver::checkThirdRowStateTransition(const std::chrono::steady_clock::time_point& now){
+    
+    if (now - third_row_config.last_third_row_toggle >= std::chrono::seconds(third_row_config.third_line_refresh_seconds)) {
+        transitionThirdRowState();
+        third_row_config.last_third_row_toggle = now;
+    }
+}
+
+void MatrixDriver::transitionThirdRowState(){
+    third_row_config.third_row_state = (third_row_config.third_row_state == SECOND_TRAIN) ? THIRD_TRAIN : SECOND_TRAIN;
+    
+    third_row_config.refresh_state.triggerRefresh();                                                                                            // Trigger a refresh of the third row
+    if(third_row_config.scroll_in) {
+        third_row_content.second_departure.x_position = matrix_width;
+        third_row_content.third_departure.x_position = matrix_width;
+    }
+}
+// ===> End section
+
+
+// Uncoment this section if you want the 2nd/3rd departures simply switch from one to the other.
+// If you want these to fly in from the right then comment out the section below and use the code above instead.
+// ===> Begin section
+/*
 void MatrixDriver::renderThirdRow(){
     try {
         
@@ -512,7 +598,6 @@ void MatrixDriver::renderThirdRow(){
 }
 
 void MatrixDriver::checkThirdRowStateTransition(const std::chrono::steady_clock::time_point& now){
-    //auto now = std::chrono::steady_clock::now();
     
     if (now - third_row_config.last_third_row_toggle >= std::chrono::seconds(third_row_config.third_line_refresh_seconds)) {
         transitionThirdRowState();
@@ -524,6 +609,9 @@ void MatrixDriver::transitionThirdRowState(){
     third_row_config.third_row_state = (third_row_config.third_row_state == SECOND_TRAIN) ? THIRD_TRAIN : SECOND_TRAIN;
     third_row_config.refresh_state.triggerRefresh();                                                                                            // Trigger a refresh of the third row
 }
+ */
+// ===> End section
+
 
 // Fourth row configuration, update and display
 
@@ -536,14 +624,17 @@ void MatrixDriver::configureFourthRow(){
     fourth_row_config.show_messages = config.getBool("ShowMessages");
     fourth_row_config.last_fourth_row_toggle = std::chrono::steady_clock::now();
     fourth_row_config.configured = true;
+    fourth_row_config.nrcc_message_slowdown = config.getInt("nrcc_message_slowdown");
+    fourth_row_config.last_nrcc_message_move = std::chrono::steady_clock::now();                                                                // When did the last move happen to scroll the nrcc message
     
     fourth_row_content.message.x_position = matrix_width;
-    fourth_row_content.api_version = -1;
+    
     fourth_row_content.has_message = false;
+    fourth_row_content.api_version = -1;
     
     DEBUG_PRINT("[Matrix_Driver] [Fourth row initialised] Message locn. (" << fourth_row_content.message.x_position<< "," << fourth_row_config.y_position << ") " <<
-                "Has message: " << fourth_row_content.has_message << " " << "Show messages: " << fourth_row_config.show_messages << " " <<
-                "Message refresh interval: " << fourth_row_config.fourth_line_refresh_seconds << " (s)");
+                "Has message: " << fourth_row_content.has_message << ". Show messages: " << fourth_row_config.show_messages << ". nrcc_message_slowdown: " << fourth_row_config.nrcc_message_slowdown <<
+                ". Message refresh interval: " << fourth_row_config.fourth_line_refresh_seconds << " (s)");
 }
 
 void MatrixDriver::updateFourthRow(const fourth_row_data &new_forth_row){
@@ -619,7 +710,8 @@ void MatrixDriver::checkFourthRowStateTransition(const std::chrono::steady_clock
     }
     
     if (fourth_row_config.fourth_row_state == MESSAGE) {                            // If we're showing a message, only toggle when scrolling is complete
-        if (fourth_row_config.message_scroll_complete && now - fourth_row_config.last_fourth_row_toggle >= std::chrono::seconds(fourth_row_config.fourth_line_refresh_seconds)) {
+        //if (fourth_row_config.message_scroll_complete && now - fourth_row_config.last_fourth_row_toggle >= std::chrono::seconds(fourth_row_config.fourth_line_refresh_seconds)) {
+        if (fourth_row_config.message_scroll_complete) {                            // Changed the condition here so that the transition happens as soon as the scroll has completed
             should_toggle = true;
         }
     } else {                                                                        // For location, toggle based on timer
@@ -712,6 +804,7 @@ void MatrixDriver::debugPrintSecondRowData(){
         std::cerr << "[Matrix_Driver]" << std::endl;
         std::cerr << "-- Second Row Data  --" << std::endl;
         second_row_content.calling_points.fulldump("Calling Points");
+        second_row_content.service_message.fulldump("Service Message");
         std::cerr << "api_version: " << second_row_content.api_version<< std::endl;
         std::cerr << "[Matrix_Driver]" <<std::endl;
     }
@@ -722,7 +815,8 @@ void MatrixDriver::debugPrintSecondRowConfig(){
         std::cerr << "[Matrix_Driver]" << std::endl;
         std::cerr << "-- Second Row Config  --" << std::endl;
         std::cerr << "y_position: " << second_row_config.y_position<< std::endl;
-        std::cerr << "message_slowdown_sleep: " << second_row_config.message_slowdown_sleep<< std::endl;
+        std::cerr << "calling_point_slowdown: " << second_row_config.calling_point_slowdown << std::endl;
+        std::cerr << "second_row_state" << second_row_config.second_row_state << std::endl;
         std::cerr << "calling_at_text: " << second_row_config.calling_at_text<< std::endl;
         std::cerr << "space_for_calling_points: " << second_row_config.space_for_calling_points<< std::endl;
         std::cerr << "scroll_calling_points: " << second_row_config.scroll_calling_points<< std::endl;
@@ -772,6 +866,7 @@ void MatrixDriver::debugPrintFourthRowConfig(){
         std::cerr << "[Matrix_Driver]" << std::endl;
         std::cerr << "-- Fourth Row Config  --" << std::endl;
         std::cerr << "y_position: " << fourth_row_config.y_position<< std::endl;
+        std::cerr << "nrcc_message_slowdown: " << fourth_row_config.nrcc_message_slowdown << std::endl;
         std::cerr << "message_scroll_complete: " << fourth_row_config.message_scroll_complete<< std::endl;
         std::cerr << "fourth_row_state: " << fourth_row_config.fourth_row_state<< std::endl;
         std::cerr << "fourth_line_refresh_seconds: " << fourth_row_config.fourth_line_refresh_seconds<< std::endl;
@@ -846,5 +941,7 @@ void MatrixDriver::debugPrintRefreshState(const std::string content, const Rende
         std::cerr << "[Matrix_Driver] End Refresh State: " << std::endl;
     }
 }
+
+
 
 

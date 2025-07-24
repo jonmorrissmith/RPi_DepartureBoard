@@ -331,7 +331,7 @@ void DisplayText::reset() {
 }
 
 void DisplayText::dump(const std::string &name) {
-    std::cout << "Name: " << name;
+    std::cout << "    [Display Text] Name: " << name;
     std::cout << ". Width: " << width;
     std::cout << ", x_position: " << x_position;
     std::cout << ", y_position: " << y_position;
@@ -339,7 +339,7 @@ void DisplayText::dump(const std::string &name) {
 }
 
 void DisplayText::fulldump(const std::string &name) {
-    std::cout << "Name: " << name;
+    std::cout << "   [Display Text] Name: " << name;
     std::cout << ". text: " << text;
     std::cout << ", Width: " << width;
     std::cout << ", x_position: " << x_position;

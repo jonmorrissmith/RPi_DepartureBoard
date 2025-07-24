@@ -2,11 +2,11 @@
 # Lines starting with # are comments
 # Setting here will overide anything in config.h
 
-debug_mode=false
+debug_mode=true
 debug_log_dir=/tmp
 # Station codes
-location=HIT
-platform=1
+location=KET
+platform=
 
 # Feature Configuration
 ShowCallingPointETD=Yes
@@ -19,14 +19,20 @@ StaffAPIKey=
 DelayCancelAPIKey=
 
 # Display font configuration
-fontPath=/home/display/rpi-rgb-led-matrix/fonts/7x14.bdf
+fontPath=
 
-# Timing parameters (in milliseconds/seconds)
-scroll_slowdown_sleep_ms=15
+# Timing parameters (in microseconds)
+calling_point_slowdown=8000
+nrcc_message_slowdown=10000
+
+# Timing parameters (in seconds)
 refresh_interval_seconds=60
 third_line_refresh_seconds=10
 Message_Refresh_interval=20
 ETD_coach_refresh_seconds=4
+
+# Scroll-in effect for third row (2nd/3rd departures)
+third_line_scroll_in=false
 
 # Matrix hardware configuration
 matrixcols=128
@@ -75,4 +81,3 @@ led-daemon=false
 led-no-drop-privs=false
 led-drop-priv-user=daemon
 led-drop-priv-group=daemon
-

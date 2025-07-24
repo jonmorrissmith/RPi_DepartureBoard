@@ -144,7 +144,10 @@ void DepartureBoard::updateDisplay(){
         DEBUG_PRINT("[Departure_Board] Updating display");
         
         first_row_data.destination.reset();
+        first_row_data.coaches.reset();
         second_row_data.calling_points.reset();
+        second_row_data.has_calling_points = true;
+        second_row_data.service_message.reset();
         third_row_data.second_departure.reset();
         third_row_data.third_departure.reset();
         
@@ -165,31 +168,31 @@ void DepartureBoard::updateDisplay(){
                 first_row_data.destination << departure_1.scheduledDepartureTime << " " << departure_1.destination;
                 first_row_data.estimated_depature_time = "Cancelled";
                 first_row_data.coach_info_available = false;
-                first_row_data.coaches = "";
-                second_row_data.calling_points = departure_1.cancelReason;
+                second_row_data.has_calling_points = false;
+                second_row_data.service_message = departure_1.cancelReason;
             } else {
-                
-                if (!departure_1.coaches.empty()) {
-                    if (!departure_1.operator_name.empty()) {
-                        second_row_data.calling_points << "A " << departure_1.operator_name << " service formed of " << departure_1.coaches << " coaches. " << departure_1.delayReason << " ";
-                    } else {
-                        second_row_data.calling_points << departure_1.coaches << " coach service ";
-                    }
-                } else {
-                    if (!departure_1.operator_name.empty()) {
-                        second_row_data.calling_points << "A " << departure_1.operator_name << " service ";
-                    }
-                }
-                
-                
-                second_row_data.calling_points << "Calling at " << parser.getCallingPoints(departure_1_index, show_calling_point_etd);
-                second_row_data.calling_points << "  " << parser.getServiceLocation(departure_1_index);
-                
-                DEBUG_PRINT("  [Departure_Board] Message and calling points: " << second_row_data.calling_points);
                 
                 first_row_data.destination << departure_1.scheduledDepartureTime << " " << departure_1.destination;
                 first_row_data.estimated_depature_time = departure_1.estimatedDepartureTime;
+                
+                if (!departure_1.coaches.empty()) {
+                    if (!departure_1.operator_name.empty()) {
+                        second_row_data.service_message << "A " << departure_1.operator_name << " service formed of " << departure_1.coaches << " coaches. " << departure_1.delayReason;
+                    } else {
+                        second_row_data.service_message << "A " << departure_1.coaches << " coach service. ";
+                    }
+                } else {
+                    if (!departure_1.operator_name.empty()) {
+                        second_row_data.service_message << "A " << departure_1.operator_name << " service. ";
+                    } 
+                }
+                
+                second_row_data.service_message << "  " << parser.getServiceLocation(departure_1_index);
+                second_row_data.calling_points << parser.getCallingPoints(departure_1_index, show_calling_point_etd);
             }
+            
+            DEBUG_PRINT("   [Departure_Board] Service Message: " << second_row_data.service_message);
+            DEBUG_PRINT("   [Departure_Board] Has calling points: " << second_row_data.has_calling_points << ". Calling points: " << second_row_data.calling_points);
             
             if(departure_2_index != 999) {
                 third_row_data.second_departure << "2nd: ";
@@ -210,6 +213,7 @@ void DepartureBoard::updateDisplay(){
             } else {
                 if(departure_2_index != 999) {
                     third_row_data.third_departure = third_row_data.second_departure;
+                    third_row_data.third_departure_estimated_departure_time = third_row_data.second_departure_estimated_departure_time;
                 }
             }
         } else {
