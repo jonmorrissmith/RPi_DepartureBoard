@@ -2,7 +2,8 @@
 ## The TL:DR
 * [Three P2, 5V, 128*64 pixel colour modules with a HUB75E interface from Ali Express](https://www.aliexpress.com/item/32913063042.html)
 * [A 1GB Raspberry Pi 4 from Pimoroni](https://shop.pimoroni.com/products/raspberry-pi-4?variant=31856486416467)
-* [Adafruit RGB Matrix Bonnet for Raspberry Pi from Pimoroni](https://shop.pimoroni.com/products/adafruit-rgb-matrix-bonnet-for-raspberry-pi?variant=2257849155594)
+* Either [Adafruit RGB Matrix Bonnet for Raspberry Pi from Pimoroni](https://shop.pimoroni.com/products/adafruit-rgb-matrix-bonnet-for-raspberry-pi?variant=2257849155594)...
+* ... or [Electrodragon 3-port RGB Matrix board for Raspberry Pi](https://www.electrodragon.com/product/rgb-matrix-panel-drive-board-raspberry-pi)
 * A 5V power-supply capable of delivering at least 5 Amps
 
 ## Some RGB matrix boards.
@@ -20,7 +21,7 @@ I used a Raspberry Pi 4 which was unloved and needed a new purpose.
 **Note** that the RGB matrix library doesn't yet work with a Pi 5. I'll update when it does as the increased power of the Pi 5 will be welcome!
 
 ## An RGB matrix-driver 
-In the latest build I've used the Electrodragon 3-port drivers - at $3 each they're hard to beat!  
+In the latest build I've used a 3-port driver - at $3 each they're hard to beat from [Electrodragon](https://www.electrodragon.com/product/rgb-matrix-panel-drive-board-raspberry-pi).
 More detail on [Hzeller's adapter page](https://github.com/hzeller/rpi-rgb-led-matrix/tree/master/adapter)
 
 This first version of the project was built with an [Adafruit RGB Matrix Bonnet for Raspberry Pi from Pimoroni](https://shop.pimoroni.com/products/adafruit-rgb-matrix-bonnet-for-raspberry-pi?variant=2257849155594)
