@@ -42,6 +42,8 @@ public:
     
     struct second_row_data {                                                        // Second row data-structure
         DisplayText calling_points;
+        DisplayText service_message;
+        bool has_calling_points;
         int64_t api_version;
     };
     
@@ -107,6 +109,7 @@ private:
 
     // Display state
     enum FirstRowState { ETD, COACHES };                                            // Toggle to show the Estimated Time of Departure or Coaches on the 1st line
+    enum SecondRowState { CALLING_POINTS, SERVICE_MESSAGE };                        // Toggle to show Calling Points for the 1st departure or formation/delay/cancellation message
     enum ThirdRowState { SECOND_TRAIN, THIRD_TRAIN };                               // Toggle to show 2nd or 3rd train on the 3rd line
     enum FourthRowState { LOCATION, MESSAGE };                                      // Toggle to show the Clock alone or the Clock and message on the 4th line
     enum class RenderState { IDLE, FIRST_PASS, SECOND_PASS };                       // Tracking state for 2-pass display refresh
@@ -143,7 +146,9 @@ private:
     
     struct second_row_configuration {
         int y_position;                                                             // y position
-        int message_slowdown_sleep;                                                 // ms sleep to slow down the scroll
+        int calling_point_slowdown;                                                 // microsecond sleep to slow down the calling-point scroll
+        std::chrono::steady_clock::time_point last_second_row_scroll_move;          // Time of the last move of the second-row text
+        SecondRowState second_row_state;                                            // Second row state - CALLING_POINTS, SERVICE_MESSAGE
         DisplayText calling_at_text;                                                // Contains the text - "Calling at:"
         int space_for_calling_points;                                               // How much space there is to display the calling points
         bool scroll_calling_points;                                                 // Yes/No - this is 'true' if the calling points exceed the width of the screen
@@ -156,6 +161,7 @@ private:
         ThirdRowState third_row_state;                                              // Third row state - SECOND_TRAIN, THIRD_TRAIN
         int third_line_refresh_seconds;                                             // Interval between SECOND_TRAIN|THIRD_TRAIN toggles
         std::chrono::steady_clock::time_point last_third_row_toggle;                // Third row - time of the last SECOND_TRAIN|THIRD_TRAIN toggle
+        bool scroll_in;                                                             // If true then the 2nd/3rd departures will scroll in from the right when they transition
         bool configured;                                                            // Has the third row been configured?
     };
     
@@ -167,6 +173,8 @@ private:
         FourthRowState fourth_row_state;                                            // Fourth row state - LOCATION, MESSAGE
         int fourth_line_refresh_seconds;                                            // Interval between LOCATION, MESSAGE toggles
         std::chrono::steady_clock::time_point last_fourth_row_toggle;               // Fourth row - time of the last LOCATION, MESSAGE toggle
+        int nrcc_message_slowdown;                                                  // microsecond sleep to slow down the nrcc message scroll
+        std::chrono::steady_clock::time_point last_nrcc_message_move;               // Time of the last move of the nrcc message text
         bool configured;                                                            // Has the fourth row been configured?
     };
     
@@ -207,7 +215,7 @@ private:
     void renderThirdRow();                                                          // Render the third row
     void renderFourthRow();                                                         // Render the fourth row
     
-    void updateScrollPositions();                                                   // Update scrolling positions
+    void updateScrollPositions(const std::chrono::steady_clock::time_point& now);   // Update scrolling positions
 
     // Toggles for display data
     void checkFirstRowStateTransition(const std::chrono::steady_clock::time_point& now);    // ETD | Coaches
@@ -225,4 +233,6 @@ private:
     
 };
 
-#endif	
+#endif
+
+
