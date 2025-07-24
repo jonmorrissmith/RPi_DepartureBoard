@@ -121,8 +121,9 @@ sudo ./demo -D9 --led-rows=64 --led-cols=128 --led-chain=3 --led-gpio-mapping=ad
 Have fun!
 
 # Subscribe to the Rail Data Marketplace Data Feeds #
+You'll need to register for an account - do this as an individual rather than a company.
 
-You'll need two:
+Once you've got an account you'll need to subscribe to two data-sets:
 * Staff Data
 * Reference Data
 
@@ -175,7 +176,7 @@ Set the following in the UI
 ## Debug Settings (as this is a Beta version)
 ```
 debug_mode      \\ true/false for on/off
-debug_log_dir   \\ where to store the debug logs
+debug_log_dir   \\ where to store the debug logs and JSON output from the API
 ```
 
 ## Location and Destination
@@ -192,8 +193,8 @@ ShowLocation          \\ If set ('from') will display at the bottom (alternate w
 ```
 ## API and Font Configuration
 ```
-StaffAPIKey              \\ The Staff Departure Board key from Rail Data Market Place
-DelayCancelAPIKey        \\ The Delay/Cancellation Reference Data key from Rail Data Market Place
+StaffAPIKey           \\ The Staff Departure Board key from Rail Data Market Place
+DelayCancelAPIKey     \\ The Delay/Cancellation Reference Data key from Rail Data Market Place
 ```
 ## Font configuration
 ```
@@ -201,29 +202,31 @@ fontPath  \\ Path to fonts - you can use the matrix package (/home/<your usernam
 ```
 ## Timing Configuration
 ```
-scroll_slowdown_sleep_ms=15     \\ Lower the number, the faster the scroll
-refresh_interval_seconds=60     \\ How often the API is called to refresh the train data
-third_line_refresh_seconds=10   \\ How often the third line switches between 2nd and 3rd departure
-Message_Refresh_interval=20     \\ How often any Network Rail messages are shown
-ETD_coach_refresh_seconds=4     \\ How often the top right switches between ETD and number of coaches
+calling_point_slowdown       \\ Lower the number, the faster the calling-points scroll
+nrcc_message_slowdown        \\ Lower the number, the faster the Network Rail messages scroll
+refresh_interval_seconds     \\ How often the API is called to refresh the train data
+third_line_refresh_seconds   \\ How often the third line switches between 2nd and 3rd departure
+Message_Refresh_interval     \\ How often any Network Rail messages are shown
+ETD_coach_refresh_seconds    \\ How often the top right switches between ETD and number of coaches
+third_line_scroll_in         \\ If true 2nd/3rd departures scroll in rapidly from the right when they change
 ```
 
 ## Hardware Configuration
 ```
-matrixcols=128                             \\ Number of columns in an LED matrix panel
-matrixrows=64                              \\ Number of rows in an LED matrix panel
-matrixchain_length=3                       \\ Number of panels you've got chained together
-matrixparallel=1                           \\ Number of chains you've got running in parallel
-matrixhardware_mapping=adafruit-hat-pwm    \\ The hardware adapter you're using to connect the Pi to the LED matrix
-gpio_slowdown=2                            \\ Sometimes the Pi is too fast for the matrix.  Fiddle with this to get the right setting.
+matrixcols=128           \\ Number of columns in an LED matrix panel
+matrixrows=64            \\ Number of rows in an LED matrix panel
+matrixchain_length=3     \\ Number of panels you've got chained together
+matrixparallel=1         \\ Number of chains you've got running in parallel
+matrixhardware_mapping   \\ See hzeller documentation - set to adafruit-hat-pwm for the Adafruit bonnet
+gpio_slowdown=2          \\ Sometimes the Pi is too fast for the matrix.  Fiddle with this to get the right setting.
 ```
 
 ## Display layout configuration (vertical positions)
 ```
-first_line_y=12     \\ pixel-row for the first line of text
-second_line_y=29    \\ pixel-row for the second line of text
-third_line_y=46     \\ pixel-row for the third line of text
-fourth_line_y=62    \\ pixel-row for the fourth line of text
+first_line_y     \\ pixel-row for the first line of text
+second_line_y    \\ pixel-row for the second line of text
+third_line_y     \\ pixel-row for the third line of text
+fourth_line_y    \\ pixel-row for the fourth line of text
 ```
 
 ## Once you're happy with your configuration
@@ -277,7 +280,7 @@ You can edit `config.h` to hard-code values for parameters which are in `config.
 If you do this then it's easiest to run
 ```
 make clean
-make
+make all
 ```
 which will recompile the executable with your defaults.
 
@@ -305,7 +308,7 @@ Combination of the above
 
 Happy to help - drop me a line via github!
 
-**RGB Matrix Issues**
+**Helpful Links for debugging RGB Matrix Issues**
 * [Changing parameters](https://github.com/hzeller/rpi-rgb-led-matrix/blob/master/README.md#changing-parameters-via-command-line-flags)
 * [Troubleshooting](https://github.com/hzeller/rpi-rgb-led-matrix/blob/master/README.md#troubleshooting)
 
