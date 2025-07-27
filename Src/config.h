@@ -47,7 +47,7 @@ private:
         {"matrixrows", "64"},
         {"matrixchain_length", "3"},
         {"matrixparallel", "1"},
-        {"matrixhardware_mapping", "adafruit-hat-pwm"},
+        {"matrixhardware_mapping", ""},         // WARNING - setting adafruit-hat-pwm here is not over-ridden with a blank in the config file (important if you're using multiple adapters).
         {"gpio_slowdown", "4"},
         {"first_line_y", "18"},
         {"second_line_y", "38"},
