@@ -1,8 +1,8 @@
 ## Current Status
 **Second Beta Release** Some fixes deployed and additional functions added. Testing and feedback welcome!
 
-# RPi_DepartureBoard
-A Raspberry Pi powered HUB75-Matrix real-time UK train departure board with UI. Uses Staff Data for additional functionality. Supports up to 3x3 matrix panels.
+# UK Train Departure Board
+A Raspberry Pi powered HUB75-Matrix real-time UK train departure board with UI. Uses Staff Data for additional functionality.
 
 A way to build your own HUB75 RGB matrix train departure board powered by a Raspberry Pi.
 
