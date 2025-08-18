@@ -34,6 +34,8 @@ There are some limitations with using this hardware which I suspect don't apply 
 
 However for the cost it's a great result!
 
+If you're interested in how this all works, I've provided a [summary of the architecture](https://github.com/jonmorrissmith/RPi_DepartureBoard/blob/main/Docs/Architecture.md)
+
 # Motivation
 Being a life-long train fan I've always wanted my own departure board, and as a regular commuter one which shows my usual route.
 
