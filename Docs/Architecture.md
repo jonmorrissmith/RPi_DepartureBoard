@@ -61,7 +61,7 @@ The parser uses the API data-version for cache/refresh optimisation and is threa
 
 ## JSON structure
 
-Documentation is available on the Rail Data Marketplace - copy from July 2025: [LDBSVWS Documentation](https://github.com/jonmorrissmith/RPi_DepartureBoard/blob/Documentation/Docs/LDBSVWS_Documentation.pdf)
+Documentation is available on the Rail Data Marketplace - copy from July 2025: [LDBSVWS Documentation](https://github.com/jonmorrissmith/RPi_DepartureBoard/blob/main/Docs/LDBSVWS_Documentation.pdf)
 
 ## External Parser Data Structures 
 
