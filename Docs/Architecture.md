@@ -284,11 +284,7 @@ Data is passed to the Matrix Driver in these data-structures:
     };
 ```
 
-A display refresh requires two passes to complete - a Refresh_State structure is used to count the passes.
-
-Note that the main loop for rendering the display is outside of the Matrix Driver.
-
-### Initialisation
+## Initialisation
 
 The driver initialises the matrix, handles the display of the four rows of data and displays the current time.
 
@@ -296,31 +292,72 @@ Matrix configuration is provided in a structure passed from the Config class.
 
 The font is cached on initialisation and the width of each character held in a map.
 
-Each row is configured and cleared
+## Row Displays
+
+Each row has a configuration, update and render method - where required there are also methods to check if a transition is due and to carry out the transition when required.
+
+Summary of each row
 
 ### First Row
-
-Displays the platform, scheduled time, estimated time, destiation and configuration of the first departure.
-
+** Displays the platform, scheduled time, estimated time, destiation and configuration of the first departure.
+  
 There is a toggle to alternate between the number of coaches and the status (On Time, ETD, Delayed, Cancelled)
 
-## Second Row
+### Second Row
 
 Scrolls the subsequent calling points, service operator and location of the first departure.
 
 Scroll speed is set in the configuration file.
 
-## Third Row
+### Third Row
 
 Toggles between the second and third departure, showing platform, scheduled time, estimated time and destiation
 
-## Forth Row
+### Forth Row
 
 Toggles between the location of the departure board and a scroll of Network Rail messages (if available).
 
 Scroll speed is set in the configuration file.
 
 The current time is displayed in the bottom right
+
+## Row method - configure
+
+This sets the y location for each row and initialises toggles and the x position of the components in each row
+
+## Row method - Update Content
+
+Content is only updated if the API version of the data has changed.
+
+During content update text widths are set and positions calculated and cached.
+
+A refresh of the content is triggered if required
+
+## Row method - Render 
+
+### Toggle Cycles
+
+A render of the a only occurs when triggered.  As described above this is a two-pass operation.  If a refresh is not initiated the *RenderXXXRow* method immediately returns.
+
+The other method - *CheckXXXRowTransition* - checks the time elapsed since the last transition and, if the interval prescribed in the configuration is exceeded, initiates a transition.
+
+The transitions are held in enumurated types such as *ETD|COACHES* or *SECOND|THIRD_TRAIN*
+
+### Scroll Cycles
+
+Text is initially positioned at the maximum y co-ordinate of the matrix - the co-ordinate is decreased after each interval prescribed in the configuration file.
+
+The Second Row simply restarts the scroll when the text has completed the journey across the display
+
+The fourth row toggles at a configured interval between scrolled Network Rail messages (if they're in the payload) and the Location of the departure board if the configuration is set to display that.
+
+## Render The Display
+
+Each render-cycle calls a method to render each row followed by a method to update parameters and/or check for transitions.
+
+While there is a mechanism to clear and redraw the entire display, in normal operation a Render of each row only occurs where content has changed.
+
+Noted that the main-loop for the render-cycle is not in the Matrix Driver
 
 # Departure Board Driver #
 *departure_board.h|cpp*
@@ -329,11 +366,56 @@ This is the glue which pulls together the components above.
 
 The driver initialises the API, Parser and the Matrix Driver and drives the main-loop.
 
-Data is refreshed periodically via the API client, which is done as a forked process to avoid a performance hit - the amount of data can lead to calls taken multiple seconds to complete.
+The main loop calls the Matrix Driver Render method and periodically initiates a data-refresh at an interval defined in the configuration.
 
-The data is fed into the parser, results pulled and sent to the Matrix Driver for display.  What is sent depends on the configuration set.
+## Initialisation
 
+There is an initialisation function for each main component - API, Parser and Matrix Driver.
 
+These set parameters extracted from the configuration file and seed an initial hydration of the parser cache.
+
+## Data-Refresh
+
+Data is refreshed periodically via the API client - this is done in the background as a forked process to avoid a performance hit since the amount of data can lead to calls taking multiple seconds to complete.
+
+Once the data has arrived it's passed into the parser and the data-points required for the display are extracted.
+
+Parser output is sent to the Matrix Driver Row-Update methods for display.  
+
+The Departure Board Driver handles the logic for delays/cancellation, missing data and short-form JSON which happens as the final departured of the day draws near.
+
+## Shut down
+
+When the process is terminated the Departure Board Driver clears up any thread and ensures the display is reset and exits gracefully
+
+# Main function
+
+Super-simple as all it needs to do is initialise the display driver and run the main-loop.
+
+```
+int main(int argc, char* argv[]){
+    signal(SIGINT, signalHandler);
+    signal(SIGTERM, signalHandler);
+    
+    try {
+        Config config;
+        
+        processCommandLineArgs(argc, argv, config);
+        
+        DepartureBoard departure_board(config);
+        display_ptr = &departure_board;    // Set global pointer for signal handler
+        
+        std::cout << "Departureboard running. Press Ctrl+C to exit." << std::endl;
+        departure_board.run();
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Fatal error: " << e.what() << std::endl;
+        return 1;
+    }
+    std::cout << "Train display shut down successfully." << std::endl;
+    return 0;
+}
+```
 
 
 
