@@ -9,7 +9,7 @@
 ## Some RGB matrix boards.
 I purchased [three P2, 5V, 128*64 pixel colour modules with a HUB75E interface from Ali Express](https://www.aliexpress.com/item/32913063042.html).
 
-Three is a good size and three is limit for a chain of panels with the matrix library I used.  However you could have up to three rows of three.
+Three is a good size to start with. The matrix library I used ([hzeller RGB Matrix library](https://github.com/hzeller/rpi-rgb-led-matrix)supports more in each row and you can have up to three rows of panels.
 
 There are a myriad sellers on Ali Express and elsewhere. I suspect there's little to differentiate between offerings.
 
