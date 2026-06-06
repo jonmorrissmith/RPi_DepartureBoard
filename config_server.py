@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Lightweight web server to modify configuration files and restart the display process.
+Lightweight web server to modify configuration files and restart the display process. Stable final version.
+Next steps - make it a nicer dashboard and add wifi-configration.
 """
 import os
 import sys
