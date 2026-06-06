@@ -1,5 +1,7 @@
 ## Current Status
-**Second Beta Release** Some fixes deployed and additional functions added. Testing and feedback welcome!
+**Stable release** this has been running without issue for a long time now. Robust coding paid off!
+
+This is constantly tested against the latest Raspberry Pi OS available so you can be sure of no OS-related issues.
 
 # UK Train Departure Board
 A Raspberry Pi powered HUB75-Matrix real-time UK train departure board with UI. Uses Staff Data for additional functionality.
