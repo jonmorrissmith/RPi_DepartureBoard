@@ -294,19 +294,19 @@ Three options which also support a '-d' option for debugging information
 
 Use the hard-coded configuration in the executable
 
-`sudo ./traindisplay`
+`sudo ./departureboard`
 
 Use the hard-coded configuration in the executable and specify origin
 
-`sudo ./traindisplay KGX`
+`sudo ./departureboard KGX`
 
 Use the configuration file
 
-`sudo ./traindisplay -f <config file>`
+`sudo ./departureboard -f <config file>`
 
 Combination of the above
 
-`sudo ./traindisplay KGX -f <config file> -d`
+`sudo ./departureboard KGX -f <config file> -d`
 
 # Troubleshooting #
 
