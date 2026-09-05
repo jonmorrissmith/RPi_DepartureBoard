@@ -3,6 +3,8 @@
 
 This is constantly tested against the latest Raspberry Pi OS available so you can be sure of no OS-related issues.
 
+More detail on top of what's here is available on my website [AnotherPartialSuccess.com](https://anotherpartialsuccess.com)
+
 # UK Train Departure Board
 A Raspberry Pi powered HUB75-Matrix real-time UK train departure board with UI. Uses Staff Data for additional functionality.
 
