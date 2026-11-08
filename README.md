@@ -117,6 +117,10 @@ Compile the library
 cd rpi-rgb-matrix
 make
 ```
+**Important** - make a note of the directory where you've installed the libary is where the departureboard gets it's fonts.  
+
+The path should be something like home/*your_username*/rpi-rgb-led-matrix/fonts/7x14.bdf
+
 A pre-emptive read of the [Troubleshooting section](https://github.com/hzeller/rpi-rgb-led-matrix?tab=readme-ov-file#troubleshooting) will help you get ahead of issues.
 
 Enjoy the demos in the `examples-api-use` directory.
