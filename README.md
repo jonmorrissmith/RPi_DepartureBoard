@@ -1,7 +1,7 @@
 ## Current Status
 **Stable release** this has been running without issue for a long time now. Robust coding paid off!
 
-This is constantly tested against the latest Raspberry Pi OS available so you can be sure of no OS-related issues.
+This is constantly tested against the latest Raspberry Pi OS available so you can be sure of no OS-related issues (latest test - Nov 2026)
 
 More detail on top of what's here is available on my website [AnotherPartialSuccess.com](https://anotherpartialsuccess.com)
 
@@ -179,7 +179,7 @@ Which means you can go to `http://<IP address of your Raspberry Pi>` and start u
 # First Time Use - Basic Configuration
 Set the following in the UI
 
-## Debug Settings (as this is a Beta version)
+## Debug Settings
 ```
 debug_mode      \\ true/false for on/off
 debug_log_dir   \\ where to store the debug logs and JSON output from the API
